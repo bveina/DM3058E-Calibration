@@ -41,6 +41,17 @@ internally modes are numbered:
 
 The steps seep to follow that the setting byte is related to if step is a  Zero or gain step but toward the bottom of the list ther is obviously more going on. (1 seems to be ZERO, 0 seems to be GAIN).
 
+most steps setup some internal memory locations then let the multimeter chug along.
+
+```
+//bad pseudocode
+case n:
+  IsCalRunning=1
+  removeCalConstants??=1
+  ZeroGain=<settingByte>
+  SCPIprintf("CALIBRATION:STEP %d",n)
+  break:
+```
 |Start|Stop   |  Length | SettingByte   |Note   |
 |---|---|---|---|---|
 |0   |  4 |5 |1|VDC |
@@ -92,12 +103,12 @@ The steps seep to follow that the setting byte is related to if step is a  Zero 
 |469 |474 |6 |1||
 |475 |480 |6 |10||
 |481 |486 |6 |0||
-|487 |487 |1 |NA| reset any hand calibration?|
-|488 |488 |1 |NA||
+|487 |487 |1 |NA|Reset any hand calibration?|
+|488 |488 |1 |NA|???|
 |489 |489 |1 |NA|Half Range related?|
 |490 |490 |1 |NA|Dump Default Calibration Table?|
-|491 |491 |1 |NA|Disable Connection to terminal?|
-|492 |492 |1 |NA|Enable Connection to terminals?|
+|491 |491 |1 |NA|DMA4 coms(Disable Connection to terminal?)|
+|492 |492 |1 |NA|DMA4 coms(Enable Connection to terminals?)|
 
 
 The last 5 steps are very interesting. and have some impressive effects.
