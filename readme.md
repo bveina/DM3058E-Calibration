@@ -15,24 +15,28 @@ Currently a partial picture of the alignment process has been uncovered. After p
 ```
 :CALI:STEP <n>
 :CALI:STATUS?
-:CALI:<MODE>:ZERO <unk>
-:CALI:<MODE>:GAIN <unk>
+:CALI:<MODE>:ZERO <Range>
+:CALI:<MODE>:GAIN <Range>
 ```
 Where
 - ```n``` is a number between 0 and 492 (with some gaps)
 - ```mode``` is anything you could put after a ```:MEAS``` scpi commands (eg ```VOLT:DC```)
-- ```unk``` is any text. at this time is looks like it is unused.
+- ```Range``` 0,1,2,... corresponding to the Range being calibrated
+
+Commands in the style ``` :CALI:VOLT:DC:ZERO 0 ``` work great, but can not currently be stored to non volatile memory. they cant survive ```*RST```
+
+commands in the style ``` :CALI:STEP n ``` can be stored via ``` :CALI:STEP 487 ``` and be reset to factory defaults via ``` :CALI:STEP 488 ``` but it is not as simple as zero and gain there is some extra piece that seams to add in a non linearity and requires more research.
 
 
-Steps >487 are important for writing and reseting values
+Steps >487 are important for writing and resetting values
 487. seems to write the values into flash memory
 488. resets the values to a built in default.
 489. not clear but references AC half Ranges
 490. prints the calibration constants (must use a raw read)
 491. seems to disconnect the front terminals (hear a relay click)
-492. seems to reconnecct the front terminals (hear a relay click)
+492. seems to reconnect the front terminals (hear a relay click)
 
-single elements of calibration can be acomplished but the entire procedure has not been mapped out yet.
+single elements of calibration can be accomplished but the entire procedure has not been mapped out yet.
 
 before running calibration code the first few elements of the calibration constants were
 ```
@@ -60,19 +64,34 @@ b'00000000'
       -0.02        3.09        3.09        1.00        1.00        0.00
 ```
 
-I'd call that a successful test.
+I'd call that a successful test. but it doesn't really work as well as it sound (introduces serious nonlinearity in the readings.)
 
 
 
 
 
-### Side benifits
+### Side benefits
 A few commands were discovered that are not directly related to calibration but are interesting none the less.
 ```C
 ":WEBcontrol:KEY:SET <n>" //tries to press a key n is currently unmapped
 ":WEBcontrol:KEY:GET?" // returns a bitmask related to keystrokes
 ":WEBcontrol:GUI:GET?" // returns a bitmap of the current screen.
+"SYSTEM:PROD:PASS rigolproduct" // allow you to change things you really shouldent
+"SYST:PROD:SETType DM1234" // change model type (DM3058E,DM3068)
+"SYSTEM:PROD:SETSerial <newserial>" // change your serial number (ie DM3R1234A1234)
+"SYST:PROD:SETMacaddr aa:AA:aa:aa:aa:aa" // only really matters if you have an LXI interface...
+
+"SYSTEM:PROD:CLOSE rigollan" // save those things you really shouldent change
+
+"WINDOW:STATUS 0|1|ON|OFF" // turn off entire display
+"WINDOW:STATUS?" // check if display is on
+
 ```
+
+to save a png of the screen use ```SaveScreen("output.png")```
+
+
+
 
 ### Cali:Step
 the steps seem to be split into groups based on mode and ranges
@@ -89,7 +108,7 @@ internally modes are numbered:
 8. Continuity
 9. Diode
 
-The steps seep to follow that the setting byte is related to if step is a  Zero or gain step but toward the bottom of the list ther is obviously more going on. (1 seems to be ZERO, 0 seems to be GAIN).
+The steps seep to follow that the setting byte is related to if step is a  Zero or gain step but toward the bottom of the list there is obviously more going on. (1 seems to be ZERO, 0 seems to be GAIN).
 
 most steps setup some internal memory locations then let the multimeter chug along.
 
@@ -102,14 +121,14 @@ case n:
   SCPIprintf("CALIBRATION:STEP %d",n)
   break:
 ```
-|Start|Stop   |  Length | SettingByte   |Note   |
+|Start | Stop   |  Length | Setting Byte   |Note   |
 |---|---|---|---|---|
 |0   |  4 |5 |1|VDC Zero (Ranges: 200mV, 2V, 20V, 200V, 1kV)|
-|10  | 14 |5 |1|VAC 1/2 Range? (Ranges: 200mV, 2V, 20V, 200V, 750V)|
+|10  | 14 |5 |1| |
 |19  | 25 |7 |1|Res2? SHORT|
 |26  | 32 |7 |1|Res4? SHORT|
 |33  | 33 |1 |1|Frequency Calibration (give 100kHz @ 2V) (DC will hang the dmm)|
-|34  | 38 |5 |0||
+|34  | 38 |5 |0| VDC gain |
 |105 |109 |5 |0||
 |110 |114 |5 |0||
 |116 |119 |4 |0||
@@ -117,7 +136,7 @@ case n:
 |127 |133 |7 |0|Res4? gain?|
 |140 |140 |1 |0|hangs without VAC input (tweaks Freq measurement)|
 |141 |141 |1 |0|hangs without VAC input (tweaks Freq measurement)|
-|142 |146 |5 |10||
+|142 |146 |5 |10| vdc related?|
 |147 |151 |5 |10||
 |152 |158 |7 |10|Res2?|
 |159 |165 |7 |10|Res4?|
@@ -153,10 +172,10 @@ case n:
 |469 |474 |6 |1| CAPacitance Zero?|
 |475 |480 |6 |10| CAPacitance Gain?|
 |481 |486 |6 |0||
-|487 |487 |1 |NA|Write Calibrations to factory memory|
-|488 |488 |1 |NA|Reload default constants|
-|489 |489 |1 |NA|Half Range related?|
-|490 |490 |1 |NA|Dump Calibration Constants|
+|487 |487 |1 |NA| Write Calibrations to factory memory|
+|488 |488 |1 |NA| Reload default constants|
+|489 |489 |1 |NA| Half Range related?|
+|490 |490 |1 |NA| Dump Calibration Constants|
 |491 |491 |1 |NA|DMA4 coms(Disable Connection to terminal?)|
 |492 |492 |1 |NA|DMA4 coms(Enable Connection to terminals?)|
 

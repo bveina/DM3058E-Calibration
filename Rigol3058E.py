@@ -33,6 +33,7 @@ class Rigol3058E(RigolSCPIDevice):
     # default to 200mV scale
     self.write(':MEAS:VOLT:DC 0')
 
+
   @property
   def rate(self):
     tmp = tmp = self.query(

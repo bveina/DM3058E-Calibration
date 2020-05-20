@@ -116,22 +116,37 @@ def chunks(lst, n):
   for i in range(0, len(lst), n):
     yield lst[i:i + n]
 
-def printCalibration(tmp):
+def printCalibration(tmp,first=None,last=None):
   print(binascii.hexlify(tmp[0:4]))
   for i,t in enumerate(chunks(tmp[4:],8)):
-    print("{0:11.2f}".format(struct.unpack("d",t)[0]),end=" ")
-    if ((i+1)%6==0): print()
+    if first is not None:
+      if i<first:continue
+    if last is not None:
+      if i>last: break
+    print("{0:6.2f}".format(struct.unpack("d",t)[0]),end=" ")
+    if ((i+1)%8==0): print()
+
+def multiCal(d,range=0,vals = np.linspace(0,.2,num=41)):
+    dmm.calibrate('step 488')
+    dmm.range=range
+    for step,volt in d:
+      cal.setVoltage(volt)
+      dmm.calibrate("step {0}".format(step))
+      dmm.calibrate("step 487")
+      printCalibration(dumpCalibration(),0,7)
+    readBack(vals,"tmp.png","V")
 
 
 def waitForCali():
   while (int(dmm.query(":CALI:STATUS?"))):
    print(".",end='')
    time.sleep(.5)
+  print()
 
 def SaveScreen(fname):
     x = webcontrolGetGui()
     i.save(fname)
-    
+
 
 
 V200mV = [
@@ -247,27 +262,48 @@ def fullVReadback(stabilize=5):
         readback(d['vals'],":MEAS:VOLT:DC {0}".format(d['range']))
     cal.write('out 0V')
 
-vals=np.linspace(0,.200,num=21)
+vals=np.linspace(0,.200,num=61)
 def readBack(rng,fileName,unit):
+    oldRate=dmm.rate
+    dmm.rate='F'
     res=[]
     for i in rng:
         cal.setVoltage(i)
         cal.voltageOn()
+        cal.write("*WAI")
         #cal.out="{0}{1}".format(i,unit)
         try:
-
-          t = float(dmm.getVal())
-          if (abs(t)>1000000):
-            res.append(None)
-          else:
-            res.append(t)
+          res.append(getAverage(10))
         except VisaIOError:
           res.append(None)
     fig=plt.figure()
-    plt.plot(rng,res)
-    min = -vals[1]
-    max = vals[-1] + abs(vals[1])
-    plt.axis([min,max,min,max])
+    plt.plot(rng,res,marker='x')
+    m = min([x for x in res if x is not None])
+    m1  = max([x for x in res if x is not None])
+    axismin = -1.1*abs(m)
+    axismax = m1*1.1
+    plt.axis([axismin,axismax,axismin,axismax])
     fig.savefig(fileName)
-    plt.show()
-    plt.close()
+    plt.grid(True)
+    plt.show(block=0)
+    dmm.rate=oldRate
+
+def getAverage(itemCount=10):
+    t=getVal()
+    if t is None: return None
+    for i in range(itemCount-1):
+        x=getVal(1)
+        if x is None: return None
+        t+=x
+    return t/itemCount
+
+def getVal(maxTries=10):
+  for i in range(maxTries):
+    try:
+      t = float(dmm.getVal())
+      if (abs(t)>1000000):
+        continue
+      return t
+    except VisaIOError:
+      res.append(None)
+  return None
