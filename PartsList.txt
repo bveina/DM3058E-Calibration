@@ -1,0 +1,29 @@
+DM3058 
+
+ICs
+ISP1362BD - usb on the go controller
+ADSP-BF531 - main DSP processor
+H57V1262GTR - 128Mb syncronous dram 
+S29GL032N - 32 Mbit Flash
+ADM202E- RS-232 Line Driver.
+
+AD7799 - U405 - 3 channel SigmaDelta ADC
+ADG659 - U502 - 4 channel analog Mux
+ADuM2401 - Quad Digital Isolator
+
+
+
+def findPtrLoad(addr):
+  found=False
+  byte1 = (addr>>24)&0xff
+  byte2 = (addr>>16)&0xff
+  byte3 = (addr>>8) &0xff
+  byte4 = (addr>>0) & 0xff
+  for i in range(8):
+    x="{0:02X} E1 {5:02X} {4:02X} {1:02X} E1 {3:02X} {2:02X}".format(0x8|i,0x48|i,byte1,byte2,byte3,byte4)
+    res = idaapi.find_binary(0,0xFFFFFFFF,x,0,idaapi.SEARCH_DOWN)
+    if (res != 0xFFFFFFFF):
+      print("{0:08X}".format(res))
+      found=True
+  if (not found):
+    print("Not Found")

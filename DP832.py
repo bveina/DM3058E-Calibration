@@ -12,10 +12,10 @@ class VoltageSource(ABC):
     pass
   
   @abstractmethod	
-  def VoltageOn(self):
+  def voltageOn(self):
     pass
   @abstractmethod	
-  def VoltageOff(self):
+  def voltageOff(self):
     pass
   
 class DP832Single(RigolSCPIDevice,VoltageSource):
@@ -27,9 +27,9 @@ class DP832Single(RigolSCPIDevice,VoltageSource):
     self.write("CURR 1")
     self.write("VOLT {0}".format(val))
   
-  def VoltageOn(self):
+  def voltageOn(self):
     self.write("OUTP CH1,ON")
-  def VoltageOff(self):
+  def voltageOff(self):
     self.write("OUTP CH1,OFF")
     
     
