@@ -1,4 +1,4 @@
-import visa 
+import visa
 from visa import VisaIOError
 #from visa import VI_ERROR_TMO
 import time
@@ -14,16 +14,16 @@ class Rigol3058E(RigolSCPIDevice):
     'CURRent:AC','2WR':'RESistance',
     'CAP':'CAPacitance','CONT':'CONTinuity','4WR':'FRESistance',
     'DIODE':'Diode','FREQ':'FREQuency','PERI':'PERiod'}
-    
+
   def __init__(self,scpiHande):
     engineering_notation.engineering_notation._exponent_lookup_scaled['-9']="E"
-    
+
     super(Rigol3058E,self).__init__(scpiHande)
     try:
       self.func=RigolDmmFunc.VDC
     except VisaIOError:
       print("cant set function")
-  
+
   def reset(self):
     super(Rigol3058E,self).reset()
     self.write('CMDSET RIGOL')
@@ -32,13 +32,23 @@ class Rigol3058E(RigolSCPIDevice):
     time.sleep(1)
     # default to 200mV scale
     self.write(':MEAS:VOLT:DC 0')
-  
+
+  @property
+  def rate(self):
+    tmp = tmp = self.query(
+    ":RATE:{0}?".format(Rigol3058E.dmmModes[self.internalFunction]),deep=False)
+    return tmp
+
+  @rate.setter
+  def rate(self,val):
+    self.write(":RATE:{0} {1}".format(Rigol3058E.dmmModes[self.internalFunction],val),deep=False)
+
   @property
   def range(self):
     tmp = self.query(
     ":MEAS:{0}:RANGE?".format(Rigol3058E.dmmModes[self.internalFunction]),deep=False)
     return tmp
-    
+
   @range.setter
   def range(self,val):
     self.write(
@@ -47,24 +57,24 @@ class Rigol3058E(RigolSCPIDevice):
   def getVal(self):
     tmp = self.query(":MEASure:{0}?".format(Rigol3058E.dmmModes[self.internalFunction]),deep=False)
     return tmp
-    
+
   @property
   def func(self):
     return self.query(":FUNC?")
-   
+
   @func.setter
   def func(self,val):
     #is enum?
     if isinstance(val, Enum):
       val=val.value
-    
+
     if val not in Rigol3058E.dmmModes.keys():
       raise ValueError("cant find DMM mode: {0}".format(val))
-    
+
     tmp = self.write(':FUNCtion:{0}'.format(Rigol3058E.dmmModes[val]))
     if tmp[1] == visa.constants.StatusCode.success: self.internalFunction=val
     return tmp
-    
+
   def calibrate(self,step):
     try:
       if ("step" in step):
@@ -80,7 +90,7 @@ class Rigol3058E(RigolSCPIDevice):
       print('.',end='')
       time.sleep(.5)
 
-    
+
 class RigolDmmFunc(Enum):
   VDC = 'DCV'
   VAC = 'ACV'
