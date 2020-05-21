@@ -145,6 +145,7 @@ def waitForCali():
 
 def SaveScreen(fname):
     x = webcontrolGetGui()
+    i=PIL.Image.frombuffer("1",(256,64),x)
     i.save(fname)
 
 

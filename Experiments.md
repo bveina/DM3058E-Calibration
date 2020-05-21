@@ -3,6 +3,61 @@ for these Experiments the goal is to elicit a noticible and mathmatically releva
 
 *save yourself some keystrokes and change the cal password to 'Z'*
 
+
+
+##identifying led lights
+
+running ```WEB:KEY:GET?``` with different key lights lit.
+
+|KEYS|VALS|
+|---|---|
+|VDC, RUNHOLD| 0x80008|
+| VDC, SINGLE| 0x40008|
+|ADC, RUNHOLD| 0x80004|
+|OHM, RUNHOLD| 0x80002|
+| CONT, RUNHOLD | 0x80001|
+| FREQ, RUNHOLD | 0x80800|
+|FREQ, PRESET,RUNHOLD| 0x80C00|
+|FREQ, PRESET, RUNHOLD, 2nd| 0x84C00|
+|VAC, SINGLE| 0x40010|
+|AAC, SINGLE| 0x40020|
+|CAP, SINGLE| 0x40040|
+|DIODE, SINGLE| 0x40080|
+|SENSOR, SINGLE|0x480000|
+|CONT, MEAS, SINGLE| 0x40201|
+|VDC, MATH, SINGLE| 0x40108|
+|VDC, TRIG, SINGLE|0x50008|
+|VDC, HELP, SINGLE|0x42008|
+|VDC, SAVE, SINGLE| 0x41008|
+|VDC, UTILITY, SINGLE| 0x60008|
+
+Conclusions:
+
+|KEY|MASK|BIT|
+|---|---|---|
+|CONT   | 0x00001|0
+|OHM    | 0x00002|1
+|ADC    | 0x00004|2
+|VDC    | 0x00008|3
+|VAC    | 0x00010|4
+|AAC    | 0x00020|5
+|CAP    | 0x00040|6
+|DIODE  | 0x00080|7
+|MATH   | 0x00100|8
+|MEAS   | 0x00200|9
+|PRESET | 0x00400|10
+|FREQ   | 0x00800|10
+|SAVE   | 0x01000|12
+|HELP   | 0x02000|13
+|2ND    | 0x04000|14
+|SENSOR | 0x08000|15
+|TRIG   | 0x10000|16
+|UTILITY| 0x20000|17
+|SINGLE | 0x40000|18
+|RUNHOLD| 0x80000|19
+
+
+
 ## identifying VDC cal table values
 
 running the following code should produce incorrect results for the calibration tables for volts dc across all ranges. the assumption is that range 0-4 are the zero points, and steps 34-38 are the gain points for the DC ranges.
@@ -44,7 +99,7 @@ In [9]: dmm.calibrate("step 487")
 :CALIBRATION:STEP 487
 ```
 results in the dmm reporting 100kHz for the 150kHz sine wave.
-the only changes in the calibration table are 
+the only changes in the calibration table are
 ```
 before:
 [row 34]

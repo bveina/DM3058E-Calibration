@@ -86,9 +86,10 @@ A few commands were discovered that are not directly related to calibration but 
 "WINDOW:STATUS 0|1|ON|OFF" // turn off entire display
 "WINDOW:STATUS?" // check if display is on
 
+
 ```
 
-to save a png of the screen use ```SaveScreen("output.png")```
+To save a png of the screen use ```SaveScreen("output.png")```
 
 
 
