@@ -73,8 +73,8 @@ I'd call that a successful test. but it doesn't really work as well as it sound 
 ### Side benefits
 A few commands were discovered that are not directly related to calibration but are interesting none the less.
 ```C
-":WEBcontrol:KEY:SET <n>" //tries to press a key n is currently unmapped
-":WEBcontrol:KEY:GET?" // returns a bitmask related to keystrokes
+":WEBcontrol:KEY:SET <n>" //tries to press a key but keys cant be pressed while remote is enabled
+":WEBcontrol:KEY:GET?" // returns a bitmask related to keys that are currently lit. see the Expiriments page for mask values.
 ":WEBcontrol:GUI:GET?" // returns a bitmap of the current screen.
 "SYSTEM:PROD:PASS rigolproduct" // allow you to change things you really shouldent
 "SYST:PROD:SETType DM1234" // change model type (DM3058E,DM3068)

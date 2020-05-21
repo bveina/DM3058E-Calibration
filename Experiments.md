@@ -1,5 +1,5 @@
 # Manual Experiments
-for these Experiments the goal is to elicit a noticible and mathmatically relevant offset and gain. not to make the instrument more accurate.
+for these Experiments the goal is to elicit a noticeable and mathematically relevant offset and gain. not to make the instrument more accurate.
 
 *save yourself some keystrokes and change the cal password to 'Z'*
 
