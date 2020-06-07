@@ -88,21 +88,22 @@ def getOSR():
 
 VDCcals = [ (0,'200mV'),(1,'2V'),(2,'20V'),(3,'200V'),(4,'1000V')]
 
-def fixCalibration(range,maxVal,mode='VOLT:DC'):
+def fixCalibration(range,maxVal,mode='VOLT:DC',rng=0):
   print("setting OUT min")
   #cal.out=0
   cal.setVoltage(0)
   print("setting range")
   dmm.range=range
+  dmm.rate='F'
   print("calibrating zero")
-  dmm.write("CALI:{0}:ZERO rigolproduct".format(mode))
+  dmm.write("CALI:{0}:ZERO {1}".format(mode,rng))
   waitForCali()
   input("has Zero Settled?")
   print("setting OUT max")
   #cal.out=maxVal
   cal.setVoltage(maxVal)
   print("calibrating gain")
-  dmm.write("CALI:{0}:GAIN rigolproduct".format(mode))
+  dmm.write("CALI:{0}:GAIN {1}".format(mode,rng))
   waitForCali()
   input("has gain Settled?")
 
@@ -128,14 +129,23 @@ def printCalibration(tmp,first=None,last=None):
 
 def multiCal(d,range=0,vals = np.linspace(0,.2,num=41)):
     dmm.calibrate('step 488')
+    dmm.calibrate('step 487')
+    speedHold = dmm.rate
+    dmm.rate='F'
     dmm.range=range
+    text = "{0:7s} {1:7s} {2:8s}\n".format("step", "set","after")
     for step,volt in d:
       cal.setVoltage(volt)
       dmm.calibrate("step {0}".format(step))
       dmm.calibrate("step 487")
-      printCalibration(dumpCalibration(),0,7)
-    readBack(vals,"tmp.png","V")
-
+      #input("cont>")
+      time.sleep(0.1)
+      tmpVal=getAverage()
+      if tmpVal is None:tmpVal = 999.0
+      text+="{0:7d} {1:7.5f} {2:8.5f}\n".format(step,volt,tmpVal)
+      printCalibration(dumpCalibration(),8*range,8*range+7)
+    plt=readBack(vals,"tmp.png",text)
+    dmm.rate=speedHold
 
 def waitForCali():
   while (int(dmm.query(":CALI:STATUS?"))):
@@ -150,42 +160,6 @@ def SaveScreen(fname):
 
 
 
-V200mV = [
-    (0,'-200.0mV'), (1,'-187.5mV'), (2,'-175.0mV'),
-    (3,'-162.5mV'), (4,'-150.0mV'), (5,'-137.5mV'),
-    (6,'-125.0mV'), (7,'-112.5mV'), (8,'-100.0mV'),
-    (9,'-87.5mV'), (10,'-75.0mV'), (11,'-62.5mV'),
-    (12,'-50.0mV'), (13,'-37.5mV'), (14,'-25mV'),
-    (15,'-12.5mV'),(16, '0.0mV'), (17,'12.5mV'),
-    (18, '25.0mV'), (19,'37.5mV'), (20,'50.0mV'),
-    (21,'62.5mV'), (22,'75.0mV'), (23,'87.5mV'),
-    (24,'100.0mV'), (25, '112.5mV'), (26, '125.0mV'),
-    (27,'137.5mV'), (28,'150.0mV'), (29,'162.5mV'),
-    (30,'175.0mV'), (31,'187.5mV'), (32,'200.0mV')]
-
-V2V = [
-    (0, '-2.0V'), #(1, '-1.9V'), (2, '-1.8V'), (3, '-1.7V'),
-    #(4, '-1.6V'), (5, '-1.5V'), (6, '-1.4V'), (7, '-1.3V'),
-    #(8, '-1.2V'), (9, '-1.1V'), (10, '-1.0V'), (11, '-0.9V'),
-    #(12, '-0.8V'),
-    (13, '-0.7V'), (14, '-0.6V'), (15, '-0.5V'),
-    (16, '-0.4V'), (17, '-0.3V'), (18, '-0.2V'), (19, '-0.1V'),
-    (20, '0.0V'), (21, '0.1V'), (22, '0.2V'), (23, '0.3V'),
-    (24, '0.4V'), (25, '0.5V'), (26, '0.6V'), (27, '0.7V'),
-    #(28, '0.8V'), (29, '0.9V'), (30, '1.0V'), (31, '1.1V'),
-    #(32, '1.2V'), (33, '1.3V'), (34, '1.4V'), (35, '1.5V'),
-    #(36, '1.6V'), (37, '1.7V'), (38, '1.8V'), (39, '1.9V'),
-    (40, '2.0V')
-    ]
-
-
-
-def calRange(lst,needPause=False):
-
-    brvWrite(':MEASure:VOLT:DC 0')
-    for i,x in lst:
-        print ("out is {0}".format(x))
-        cali(i,x,needPause)
 
 
 def cali(step,val,needPause=False):
@@ -279,15 +253,20 @@ def readBack(rng,fileName,unit):
           res.append(None)
     fig=plt.figure()
     plt.plot(rng,res,marker='x')
-    m = min([x for x in res if x is not None])
-    m1  = max([x for x in res if x is not None])
-    axismin = -1.1*abs(m)
-    axismax = m1*1.1
-    plt.axis([axismin,axismax,axismin,axismax])
-    fig.savefig(fileName)
+    rangeMin = min([x for x in res if x is not None])
+    rangeMax = max([x for x in res if x is not None])
+    rangemin = rangeMin - rangeMax*.1
+    rangeMax = rangeMax*1.1
+    srcMin = rng[0]-rng[-1]*.1
+    srcMax = rng[-1]*1.1
+
+    plt.axis([srcMin,srcMax,rangemin,rangeMax])
+    plt.text(srcMax*.6,rangeMax*.1,unit, family="monospace")
     plt.grid(True)
     plt.show(block=0)
+    #plt.savefig(fileName)
     dmm.rate=oldRate
+    return plt
 
 def getAverage(itemCount=10):
     t=getVal()
