@@ -4,7 +4,7 @@ from engineering_notation import EngNumber
 import engineering_notation
 from fluke5500a import Fluke5500A
 from Rigol3058E import *
-from DP832 import *
+from DP832_bipolar import *
 import matplotlib.pyplot as plt
 import numpy as np
 import binascii
@@ -47,11 +47,14 @@ print('getting DMM')
 dmmConnect()
 
 print('getting calibrator')
+cal=None
 try:
   cal = Fluke5500A(rm.open_resource('GPIB0::5::INSTR'))
 except:
   print("cant get the calibrator trying DP832")
-  cal = DP832Single(rm.open_resource(  getDP832Res()))
+  cal = DP832Bipolar(rm.open_resource(  getDP832Res()))
+  if cal != None:
+    print("got DP832")
 
 
 VDC_SHORT=[(0, 8e-6, '200mV'), (1, 60e-6, '2V'), (2, 800e-6, '20V'), (3, 6e-3, '200V'), (4, 30e-3, '1000V')]
@@ -117,7 +120,7 @@ def chunks(lst, n):
   for i in range(0, len(lst), n):
     yield lst[i:i + n]
 
-def printCalibration(tmp,first=None,last=None):
+def printCalibration(tmp=dumpCalibration(),first=None,last=None):
   print(binascii.hexlify(tmp[0:4]))
   for i,t in enumerate(chunks(tmp[4:],8)):
     if first is not None:
@@ -159,7 +162,27 @@ def SaveScreen(fname):
     i.save(fname)
 
 
-
+def ScopeScreen(scope,name):
+    # TODO: write a generic SCPI get raw TMC response.
+    
+    scope.write("DISP:DATA?",deep=False)
+    # need to parse the TMC header to find out how many bytes need to be ready
+    # this is a candidate for refactoring. this will hardly be the last time i 
+    # find a TMC header (TMC stands fro Test Measurment and Control)
+    # format '#Nxxxxxxxxx' 
+    # '#' is the start indicator for a TMC header
+    # N is the number of bytes in the TMC header left to read
+    # xxxx is a decimal number giving the length of the data to follow.
+    tmcSizeStr = scope.inst.read_bytes(2)
+    #todo: throw an exception if the first character is not a '#'
+    tmcSize=int(tmcSizeStr[1:])
+    byteCount = int(scope.inst.read_bytes(tmcSize))
+    x=scope.inst.read_bytes(byteCount,1024)
+    with open(name,'wb') as f:
+     f.write(x)
+     
+     
+    
 
 
 def cali(step,val,needPause=False):
@@ -237,7 +260,7 @@ def fullVReadback(stabilize=5):
         readback(d['vals'],":MEAS:VOLT:DC {0}".format(d['range']))
     cal.write('out 0V')
 
-vals=np.linspace(0,.200,num=61)
+vals=np.linspace(-2.00,2.00,num=61)
 def readBack(rng,fileName,unit):
     oldRate=dmm.rate
     dmm.rate='F'
