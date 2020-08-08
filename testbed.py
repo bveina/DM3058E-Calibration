@@ -25,6 +25,14 @@ def getDP832Res():
         return dev
     return None
 
+def getMSO5000Res():
+    rm = visa.ResourceManager()
+    for dev in rm.list_resources():
+      if "MS5" in dev:
+        return dev
+    return None
+
+
 def dmmConnect():
   global dmm
   dmm=None
@@ -43,19 +51,48 @@ time.sleep(1)
 #time.sleep(1)
 print('getting DMM')
 
+#try:
+#  dmmConnect()
+#except:
+#  print("Cant get the DMM")
 
-dmmConnect()
+dmm = None
+
 
 print('getting calibrator')
 cal=None
 try:
   cal = Fluke5500A(rm.open_resource('GPIB0::5::INSTR'))
+  print("got fluke5500a")
 except:
-  print("cant get the calibrator trying DP832")
-  cal = DP832Bipolar(rm.open_resource(  getDP832Res()))
-  if cal != None:
-    print("got DP832")
+  print("cant get the Fluke Calibrator ")
 
+
+if cal is None:
+  try:
+    cal = DP832Bipolar(rm.open_resource(  getDP832Res()))
+    print("got DP832")
+  except:
+    print("cant find a calibrator.")
+
+if cal is None:
+  print("couldent find any calibrators. giving up on that.")
+  cal = DP832Bipolar(None)
+
+
+print('getting Scope')
+scope = None
+try:
+  scope = RigolSCPIDevice(rm.open_resource(getMSO5000Res()))
+  print("got MSO5000")
+except:
+  print("couldent find any scopes. giving up on that.")
+  scope = RigolSCPIDevice(None)
+
+
+
+'''
+todo: remove
 
 VDC_SHORT=[(0, 8e-6, '200mV'), (1, 60e-6, '2V'), (2, 800e-6, '20V'), (3, 6e-3, '200V'), (4, 30e-3, '1000V')]
 ADC_SHORT=[(0, 10e-9, '200uA'), (1, 100e-9, '2mA'), (2, 4e-6, '20mA'), (3, 16e-6, '200mA'), (4, 400e-6, '2A'), (5, 1e-3, '10A')]
@@ -90,6 +127,18 @@ def getOSR():
 
 
 VDCcals = [ (0,'200mV'),(1,'2V'),(2,'20V'),(3,'200V'),(4,'1000V')]
+'''
+
+
+
+
+'''
+todo: move this into Rigol3058
+
+def dumpCalibration(x=""):
+  dmm.write("CALI:STEP 490 {0}".format(x),deep=False)
+  return dmm.inst.read_raw()
+
 
 def fixCalibration(range,maxVal,mode='VOLT:DC',rng=0):
   print("setting OUT min")
@@ -110,11 +159,6 @@ def fixCalibration(range,maxVal,mode='VOLT:DC',rng=0):
   waitForCali()
   input("has gain Settled?")
 
-
-def dumpCalibration(x=""):
-  dmm.write("CALI:STEP 490 {0}".format(x),deep=False)
-  return dmm.inst.read_raw()
-
 def chunks(lst, n):
   """Yield successive n-sized chunks from lst."""
   for i in range(0, len(lst), n):
@@ -129,6 +173,7 @@ def printCalibration(tmp=dumpCalibration(),first=None,last=None):
       if i>last: break
     print("{0:6.2f}".format(struct.unpack("d",t)[0]),end=" ")
     if ((i+1)%8==0): print()
+
 
 def multiCal(d,range=0,vals = np.linspace(0,.2,num=41)):
     dmm.calibrate('step 488')
@@ -156,34 +201,15 @@ def waitForCali():
    time.sleep(.5)
   print()
 
+def webcontrolGetGui():
+    dmm.write("WEBcontrol:GUI:GET?",deep=False)
+    return dmm.inst.read_raw()
+
+
 def SaveScreen(fname):
     x = webcontrolGetGui()
     i=PIL.Image.frombuffer("1",(256,64),x)
     i.save(fname)
-
-
-def ScopeScreen(scope,name):
-    # TODO: write a generic SCPI get raw TMC response.
-    
-    scope.write("DISP:DATA?",deep=False)
-    # need to parse the TMC header to find out how many bytes need to be ready
-    # this is a candidate for refactoring. this will hardly be the last time i 
-    # find a TMC header (TMC stands fro Test Measurment and Control)
-    # format '#Nxxxxxxxxx' 
-    # '#' is the start indicator for a TMC header
-    # N is the number of bytes in the TMC header left to read
-    # xxxx is a decimal number giving the length of the data to follow.
-    tmcSizeStr = scope.inst.read_bytes(2)
-    #todo: throw an exception if the first character is not a '#'
-    tmcSize=int(tmcSizeStr[1:])
-    byteCount = int(scope.inst.read_bytes(tmcSize))
-    x=scope.inst.read_bytes(byteCount,1024)
-    with open(name,'wb') as f:
-     f.write(x)
-     
-     
-    
-
 
 def cali(step,val,needPause=False):
     cal.setVoltage(val)
@@ -221,6 +247,33 @@ def readback(lst,range=1):
 
         print("exp: {0:9s} recv: {1}".format(x,EngNumber(t,precision=5)))
 
+
+'''
+
+def ScopeScreen(scope,name,blockSize=4096):
+    # TODO: write a generic SCPI get raw TMC response.
+
+    scope.write("DISP:DATA?",deep=False)
+    # need to parse the TMC header to find out how many bytes need to be ready
+    # this is a candidate for refactoring. this will hardly be the last time i
+    # find a TMC header (TMC stands fro Test Measurment and Control)
+    # format '#Nxxxxxxxxx'
+    # '#' is the start indicator for a TMC header
+    # N is the number of bytes in the TMC header left to read
+    # xxxx is a decimal number giving the length of the data to follow.
+    tmcSizeStr = scope.inst.read_bytes(2)
+    #todo: throw an exception if the first character is not a '#'
+    tmcSize=int(tmcSizeStr[1:])
+    byteCount = int(scope.inst.read_bytes(tmcSize))
+    x=scope.inst.read_bytes(byteCount,blockSize)
+    with open(name,'wb') as f:
+     f.write(x)
+
+
+
+
+''' todo: remove
+
 def shortTest(tolerances,settingCmd,measureCmd,tSettle=5):
     status=True
     for rng,tol,desc in tolerances:
@@ -239,9 +292,6 @@ def shortTest(tolerances,settingCmd,measureCmd,tSettle=5):
     return status
 
 
-def webcontrolGetGui():
-    dmm.write("WEBcontrol:GUI:GET?",deep=False)
-    return dmm.inst.read_raw()
 
 
 def testDCVoltsShort(tSettle=5):
@@ -290,6 +340,8 @@ def readBack(rng,fileName,unit):
     #plt.savefig(fileName)
     dmm.rate=oldRate
     return plt
+
+'''
 
 def getAverage(itemCount=10):
     t=getVal()
