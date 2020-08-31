@@ -47,7 +47,7 @@ class RigolSCPIDevice:
   def queryRaw(self,command):
     if self.inst is None: return ""
     self.write(command,deep=False)
-    return dmm.inst.read_raw()
+    return self.inst.read_raw()
 
   def query(self,s,deep=True):
     if self.inst is None: return ""
