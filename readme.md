@@ -234,8 +234,8 @@ https://pyvisa.readthedocs.io/en/latest/faq/getting_nivisa.html#faq-getting-nivi
 
 ### Clone the Repo
 ```
-git clone https://github.com/TBA
-cd TBA
+git clone https://github.com/bveina/DM3058E-Calibration.git
+cd DM3058E-Calibration
 ```
 
 ### Setup your virtual env (this is the windows version of virtual envirment)
@@ -247,6 +247,6 @@ pip install -r requirements.txt
 
 ### Enter the terminal
 ```bash
-ipython -i -c "from testbed import *"
+ipython -i testbed.py
 ````
 This will attempt to connect to the fluke and the DMM. you may need to adjust your code to speak to the correct device.
